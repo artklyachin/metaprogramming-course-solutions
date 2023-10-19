@@ -78,19 +78,11 @@ public:
   }
 
   constexpr iterator end() const noexcept {
-    if constexpr (extent == std::dynamic_extent) {
-      return data_ + this->size_;
-    } else {
-      return data_ + extent;
-    }
+    return data_ + Size();
   }
 
   constexpr reverse_iterator rbegin() const noexcept {
-    if constexpr (extent == std::dynamic_extent) {
-      return data_ + this->size - 1;
-    } else {
-      return data_ + extent - 1;
-    }
+    return data_ + Size() - 1;
   }
 
   constexpr reverse_iterator rend() const noexcept {
@@ -102,11 +94,7 @@ public:
   }
 
   constexpr reference Back() const {
-    if constexpr (extent == std::dynamic_extent) {
-      return *(data_ + this->size_ - 1);
-    } else {
-      return *(data_ + extent - 1);
-    }
+    return *(data_ + Size() - 1);
   }
 
   constexpr pointer Data() const noexcept {
@@ -132,11 +120,11 @@ public:
 
   template< std::size_t Count >
   constexpr auto Last() const {
-      return Span<T, Count> (data_ + extent - Count, Count);
+      return Span<T, Count> (data_ + Size() - Count, Count);
   }
 
   constexpr auto Last(size_t Count) const {
-    return Span<T> (data_ + extent - Count, Count);
+    return Span<T> (data_ + Size() - Count, Count);
   }
 
 private:
