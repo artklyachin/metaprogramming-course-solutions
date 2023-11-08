@@ -228,12 +228,16 @@ struct Inits<TL, Ts...> {
 //Tails<TL> --список всех суффиксов TL в порядке возрастания длины их дополнения до всего списка.
 
 template<TypeList TL>
-struct Tails
-    : Cons<Nil, Nil> {};
+struct Tails {
+    using Head = Nil;
+    using Tail = Nil;
+};
 
 template<TypeSequence TS>
-struct Tails<TS>
-    : Cons<TS, Tails<typename TS::Tail>> {};
+struct Tails<TS> {
+    using Head = TS;
+    using Tail = Tails<typename TS::Tail>;
+};
 
 template <Empty TL>
 struct Tails<TL> {
