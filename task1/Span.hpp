@@ -1,26 +1,30 @@
 #include <algorithm>
-#include <bits/iterator_concepts.h>
-#include <bits/ranges_base.h>
 #include <span>
 #include <concepts>
 #include <cstdlib>
 #include <iterator>
 #include <vector>
+#include <cassert>
 
+namespace detail {
 
-template <std::size_t extent>
-struct SpanSize {
-  SpanSize(std::size_t) {}
-};
+  template <std::size_t extent>
+  struct SpanSize {
+    SpanSize(std::size_t size) {
+      assert(size <= extent);
+    }
+  };
 
-template <>
-struct SpanSize<std::dynamic_extent> {
-  std::size_t size_;
-  SpanSize(std::size_t size) : size_(size) {}
-};
+  template <>
+  struct SpanSize<std::dynamic_extent> {
+    std::size_t size_;
+    SpanSize(std::size_t size) : size_(size) {}
+  };
+
+}
 
 template <class T, std::size_t extent = std::dynamic_extent>
-class Span : private SpanSize<extent> {
+class Span : private detail::SpanSize<extent> {
 public:
   using element_type = T;
   using value_type = std::decay_t<T>;
@@ -45,23 +49,23 @@ public:
   template <std::contiguous_iterator It>
   explicit(extent != std::dynamic_extent)
   constexpr Span(It first, size_type count = extent)
-    : SpanSize<extent>(count), data_(&(*first)) {}
+    : detail::SpanSize<extent>(count), data_(std::to_address(first)) {}
 
   template <class U>
   constexpr Span( std::vector<U>& arr) noexcept 
-    : SpanSize<extent>(arr.size()), data_(arr.data()) {}
+    : detail::SpanSize<extent>(arr.size()), data_(arr.data()) {}
 
   template< class U, std::size_t N >
   constexpr Span( std::array<U, N>& arr ) noexcept 
-    : SpanSize<extent>(arr.size()), data_(arr.data()) {}
+    : detail::SpanSize<extent>(arr.size()), data_(arr.data()) {}
 
   template< class U, std::size_t N >
   constexpr Span(const std::array<U, N>& arr ) noexcept
-    : SpanSize<extent>(arr.size()), data_(arr.data()) {}
+    : detail::SpanSize<extent>(arr.size()), data_(arr.data()) {}
 
   template <class R>
   explicit(extent != std::dynamic_extent)
-  constexpr Span(R&& range) : SpanSize<extent>(std::ranges::size(range)), data_(std::data(range)) {
+  constexpr Span(R&& range) : detail::SpanSize<extent>(std::ranges::size(range)), data_(std::data(range)) {
 
   }
 
@@ -70,6 +74,7 @@ public:
   constexpr Span& operator=( const Span& other ) noexcept = default;
 
   constexpr reference operator[](size_t index) const {
+    assert(index < Size());
     return *(data_ + index);
   }
 
@@ -82,18 +87,20 @@ public:
   }
 
   constexpr reverse_iterator rbegin() const noexcept {
-    return data_ + Size() - 1;
+    return std::make_reverse_iterator(end() - 1);
   }
 
   constexpr reverse_iterator rend() const noexcept {
-    return data_ - 1;
+    return std::make_reverse_iterator(begin() - 1);
   }
 
   constexpr reference Front() const {
+    assert(Size() > 0);
     return *data_;
   }
 
   constexpr reference Back() const {
+    assert(Size() > 0);
     return *(data_ + Size() - 1);
   }
 
@@ -111,19 +118,23 @@ public:
 
   template <std::size_t Count>
   constexpr auto First() const {
-      return Span<T, Count>(data_, Count);
+    assert(Count <= Size());
+    return Span<T, Count>(data_, Count);
   }
 
   constexpr auto First(size_t Count) const {
+    assert(Count <= Size());
     return Span<T> (data_, Count);
   }
 
   template< std::size_t Count >
   constexpr auto Last() const {
-      return Span<T, Count> (data_ + Size() - Count, Count);
+    assert(Count <= Size());
+    return Span<T, Count> (data_ + Size() - Count, Count);
   }
 
   constexpr auto Last(size_t Count) const {
+    assert(Count <= Size());
     return Span<T> (data_ + Size() - Count, Count);
   }
 
